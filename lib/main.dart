@@ -6,7 +6,33 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await startPythonServer(); // Ensures Python server starts first
   runApp(const AutoShutApp());
+}
+
+Future<void> startPythonServer() async {
+  final pythonExecutablePath = r'C:\autoshut\git\autoshut\dist\idle_server.exe';
+
+  try {
+    print("Starting Python server...");
+    final process = await Process.start(
+      pythonExecutablePath,
+      [],
+      runInShell: true,
+    );
+
+    process.stdout.transform(utf8.decoder).listen((data) {
+      print("Python server output: $data");
+    });
+    process.stderr.transform(utf8.decoder).listen((data) {
+      print("Python server error: $data");
+    });
+
+    print("Python server started successfully.");
+  } catch (e) {
+    print("Error starting Python server: $e");
+  }
 }
 
 class AutoShutApp extends StatelessWidget {
@@ -26,21 +52,22 @@ class HomePage extends StatefulWidget {
 
   @override
   _HomePageState createState() => _HomePageState();
+/*************  ✨ Codeium Command 🌟  *************/
 }
 
 class _HomePageState extends State<HomePage> {
   int _idleTime = 0;
+/// ****  62154ce0-619a-4437-8013-01479ea2ca24  ******
   Timer? _updateTimer;
   int _idleLimit = 30; // Default value if none is saved
   bool _showCountdown = false;
-  int _countdownTime = 5;
+  final int _countdownTime = 5;
   Process? _pythonProcess;
 
   @override
   void initState() {
     super.initState();
     _loadIdleLimit();
-    startPythonServer();
     startMonitoring();
   }
 
@@ -54,24 +81,6 @@ class _HomePageState extends State<HomePage> {
   Future<void> _saveIdleLimit(int limit) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('idle_limit', limit);
-  }
-
-  Future<void> startPythonServer() async {
-    try {
-      print("Starting Python server...");
-      _pythonProcess = await Process.start('python', ['idle_server.py'],
-          workingDirectory: Directory.current.path);
-
-      _pythonProcess?.stdout.transform(utf8.decoder).listen((data) {
-        print("Python server output: $data");
-      });
-      _pythonProcess?.stderr.transform(utf8.decoder).listen((data) {
-        print("Python server error: $data");
-      });
-      print("Python server started successfully.");
-    } catch (e) {
-      print("Error starting Python server: $e");
-    }
   }
 
   void startMonitoring() {
@@ -170,40 +179,41 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
-void _openSettingsDialog() {
-  showDialog(
-    context: context,
-    builder: (context) {
-      int newLimit = _idleLimit;
-      return AlertDialog(
-        title: const Text("Set Idle Limit"),
-        content: DropdownButton<int>(
-          value: newLimit,
-          items: List.generate(60, (index) {
-            return DropdownMenuItem(
-              value: index,
-              child: Text("$index seconds"),
-            );
-          }),
-          onChanged: (int? newValue) {
-            setState(() {
-              newLimit = newValue ?? _idleLimit;
-            });
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _setIdleLimit(newLimit);
-              Navigator.of(context).pop();
+
+  void _openSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        int newLimit = _idleLimit;
+        return AlertDialog(
+          title: const Text("Set Idle Limit"),
+          content: DropdownButton<int>(
+            value: newLimit,
+            items: List.generate(60, (index) {
+              return DropdownMenuItem(
+                value: index,
+                child: Text("$index seconds"),
+              );
+            }),
+            onChanged: (int? newValue) {
+              setState(() {
+                newLimit = newValue ?? _idleLimit;
+              });
             },
-            child: const Text("Set"),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: [
+            TextButton(
+              onPressed: () {
+                _setIdleLimit(newLimit);
+                Navigator.of(context).pop();
+              },
+              child: const Text("Set"),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +274,7 @@ class AnimatedGradientText extends StatefulWidget {
   final String text;
   final TextStyle style;
 
-  const AnimatedGradientText({Key? key, required this.text, required this.style}) : super(key: key);
+  const AnimatedGradientText({super.key, required this.text, required this.style});
 
   @override
   _AnimatedGradientTextState createState() => _AnimatedGradientTextState();

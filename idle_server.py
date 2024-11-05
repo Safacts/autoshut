@@ -1,12 +1,19 @@
-# idle_server.py
 from flask import Flask, jsonify, request
 import ctypes
 import os
 import threading
 import time
+import logging
+from waitress import serve
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-idle_limit = 30  # Default idle limit in seconds (can be modified by Flutter app)
+
+idle_limit = 30  # Default idle limit in seconds (modifiable by Flutter app)
+
+
 
 def get_idle_duration():
     class LASTINPUTINFO(ctypes.Structure):
@@ -24,7 +31,7 @@ def monitor_inactivity():
     while True:
         idle_time = get_idle_duration()
         if idle_time >= idle_limit:
-            print("Idle time limit exceeded. Shutting down...")
+            logging.info("Idle time limit exceeded. Shutting down...")
             os.system("shutdown /s /t 0")  # Immediate shutdown command
             break
         time.sleep(1)
@@ -51,15 +58,15 @@ def shutdown():
     os.system("shutdown /s /t 0")
     return jsonify({"status": "System shutting down..."})
 
-if __name__ == '__main__':
-    # Start inactivity monitor in a separate thread
-    threading.Thread(target=monitor_inactivity, daemon=True).start()
-    app.run(port=5000)
-
-
 @app.route('/reset_idle_time', methods=['POST'])
 def reset_idle_time():
     """Resets the idle time on server side."""
-    global idle_start_time  # Assuming you use idle_start_time to calculate idle duration
+    global idle_start_time
     idle_start_time = time.time()  # Reset the idle start to the current time
     return jsonify({"status": "Idle time reset"})
+
+if __name__ == '__main__':
+    # Start inactivity monitor in a separate thread
+    threading.Thread(target=monitor_inactivity, daemon=True).start()
+    # Use waitress to serve the app instead of app.run() for production use
+    serve(app, host='127.0.0.1', port=5000)
