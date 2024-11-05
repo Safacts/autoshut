@@ -1,6 +1,6 @@
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -28,6 +28,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _idleTime = 0;
   Timer? _updateTimer;
+  int _idleLimit = 30;
 
   @override
   void initState() {
@@ -41,6 +42,9 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _idleTime = idleTime;
       });
+      if (_idleTime >= _idleLimit) {
+        _sendShutdownRequest();
+      }
     });
   }
 
@@ -57,6 +61,23 @@ class _HomePageState extends State<HomePage> {
     return 0;
   }
 
+  Future<void> _sendShutdownRequest() async {
+    await http.post(Uri.parse('http://localhost:5000/shutdown'));
+  }
+
+  Future<void> _setIdleLimit(int limit) async {
+    final response = await http.post(
+      Uri.parse('http://localhost:5000/set_idle_limit'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({"limit": limit}),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        _idleLimit = limit;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _updateTimer?.cancel();
@@ -66,13 +87,49 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AutoShut Inactivity Monitor')),
+      appBar: AppBar(
+        title: const Text('AutoShut Inactivity Monitor'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => _openSettingsDialog(),
+          ),
+        ],
+      ),
       body: Center(
         child: Text(
           "Idle time: $_idleTime seconds",
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
+    );
+  }
+
+  void _openSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        int _newLimit = _idleLimit;
+        return AlertDialog(
+          title: const Text("Set Idle Limit"),
+          content: TextField(
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              _newLimit = int.tryParse(value) ?? _idleLimit;
+            },
+            decoration: InputDecoration(hintText: "$_idleLimit seconds"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _setIdleLimit(_newLimit);
+                Navigator.of(context).pop();
+              },
+              child: const Text("Set"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
