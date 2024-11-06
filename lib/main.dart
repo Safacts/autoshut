@@ -12,7 +12,9 @@ void main() async {
 }
 
 Future<void> startPythonServer() async {
-  final pythonExecutablePath = r'C:\autoshut\git\autoshut\dist\idle_server.exe';
+  // Get the directory of the currently running executable
+  final executableDir = File(Platform.resolvedExecutable).parent.path;
+  final pythonExecutablePath = '$executableDir/idle_server.exe';
 
   try {
     print("Starting Python server...");
@@ -31,7 +33,27 @@ Future<void> startPythonServer() async {
 
     print("Python server started successfully.");
   } catch (e) {
-    print("Error starting Python server: $e");
+    // Fallback path if the initial path fails
+    final fallbackPath = r'C:\autoshut\git\autoshut\dist\idle_server.exe';
+    try {
+      print("Trying fallback path for Python server...");
+      final process = await Process.start(
+        fallbackPath,
+        [],
+        runInShell: true,
+      );
+
+      process.stdout.transform(utf8.decoder).listen((data) {
+        print("Python server output: $data");
+      });
+      process.stderr.transform(utf8.decoder).listen((data) {
+        print("Python server error: $data");
+      });
+
+      print("Python server started successfully at fallback path.");
+    } catch (e) {
+      print("Error starting Python server at fallback path: $e");
+    }
   }
 }
 
@@ -52,12 +74,10 @@ class HomePage extends StatefulWidget {
 
   @override
   _HomePageState createState() => _HomePageState();
-/*************  ✨ Codeium Command 🌟  *************/
 }
 
 class _HomePageState extends State<HomePage> {
   int _idleTime = 0;
-/// ****  62154ce0-619a-4437-8013-01479ea2ca24  ******
   Timer? _updateTimer;
   int _idleLimit = 30; // Default value if none is saved
   bool _showCountdown = false;
@@ -127,7 +147,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _idleLimit = limit;
     });
-    _saveIdleLimit(limit);
+    await _saveIdleLimit(limit);
   }
 
   void _resetIdleTime() async {
@@ -181,29 +201,66 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openSettingsDialog() {
+    int newMinutes = _idleLimit ~/ 60; // Initial minutes
+    int newSeconds = _idleLimit % 60;  // Initial seconds
     showDialog(
       context: context,
       builder: (context) {
-        int newLimit = _idleLimit;
         return AlertDialog(
           title: const Text("Set Idle Limit"),
-          content: DropdownButton<int>(
-            value: newLimit,
-            items: List.generate(60, (index) {
-              return DropdownMenuItem(
-                value: index,
-                child: Text("$index seconds"),
+          content: StatefulBuilder(
+            builder: (context, setDialogState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Text("Minutes: "),
+                      const SizedBox(width: 10),
+                      DropdownButton<int>(
+                        value: newMinutes,
+                        items: List.generate(60, (index) {
+                          return DropdownMenuItem(
+                            value: index,
+                            child: Text("$index"),
+                          );
+                        }),
+                        onChanged: (int? newValue) {
+                          setDialogState(() {
+                            newMinutes = newValue ?? newMinutes;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Text("Seconds: "),
+                      const SizedBox(width: 10),
+                      DropdownButton<int>(
+                        value: newSeconds,
+                        items: List.generate(60, (index) {
+                          return DropdownMenuItem(
+                            value: index,
+                            child: Text("$index"),
+                          );
+                        }),
+                        onChanged: (int? newValue) {
+                          setDialogState(() {
+                            newSeconds = newValue ?? newSeconds;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               );
-            }),
-            onChanged: (int? newValue) {
-              setState(() {
-                newLimit = newValue ?? _idleLimit;
-              });
             },
           ),
           actions: [
             TextButton(
               onPressed: () {
+                int newLimit = (newMinutes * 60) + newSeconds;
                 _setIdleLimit(newLimit);
                 Navigator.of(context).pop();
               },
