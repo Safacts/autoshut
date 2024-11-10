@@ -328,6 +328,8 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+
+// AnimatedGradientText widget remains the same, just adjust the gradient properties.
 class AnimatedGradientText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -363,13 +365,13 @@ class _AnimatedGradientTextState extends State<AnimatedGradientText>
         return ShaderMask(
           shaderCallback: (bounds) {
             return LinearGradient(
-              colors: [Colors.pink, Colors.blue, Colors.purple],
-              stops: [0.0, _controller.value, 1.0],
+              colors: [Colors.pink, Colors.orange, Colors.blue, Colors.purple],
+              stops: [0.0, 0.3, _controller.value, 1.0],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ).createShader(bounds);
           },
-          child: Text(widget.text, style: widget.style),
+          child: Text(widget.text, style: widget.style.copyWith(color: Colors.white)),
         );
       },
     );
