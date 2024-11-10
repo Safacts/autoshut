@@ -102,7 +102,6 @@ class _HomePageState extends State<HomePage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setInt('idle_limit', limit);
   }
-
   void startMonitoring() {
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       int idleTime = await _fetchIdleTime();
@@ -110,6 +109,7 @@ class _HomePageState extends State<HomePage> {
         _idleTime = idleTime;
       });
 
+      // Directly use the real-time _idleLimit property
       if (_idleTime >= _idleLimit - _countdownTime) {
         setState(() {
           _showCountdown = true;
@@ -125,6 +125,7 @@ class _HomePageState extends State<HomePage> {
       }
     });
   }
+
 
   Future<int> _fetchIdleTime() async {
     try {
@@ -145,9 +146,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _setIdleLimit(int limit) async {
     setState(() {
-      _idleLimit = limit;
+      _idleLimit = limit; // Update the idle limit immediately
     });
-    await _saveIdleLimit(limit);
+    await _saveIdleLimit(limit); // Save the new limit to shared preferences
   }
 
   void _resetIdleTime() async {

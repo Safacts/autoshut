@@ -11,11 +11,12 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-idle_limit = 30  # Default idle limit in seconds (modifiable by Flutter app)
-
-
+# Global variable for idle limit, initialized as None
+idle_limit = None
+idle_limit_lock = threading.Lock()  # Lock for thread-safe updates to idle_limit
 
 def get_idle_duration():
+    """Get the current system idle time in seconds."""
     class LASTINPUTINFO(ctypes.Structure):
         _fields_ = [('cbSize', ctypes.c_uint), ('dwTime', ctypes.c_uint)]
     lii = LASTINPUTINFO()
@@ -28,9 +29,26 @@ def get_idle_duration():
 
 def monitor_inactivity():
     """Monitor idle time and trigger shutdown if it exceeds the idle limit."""
+    global idle_limit
+    
+    # Wait until the idle_limit is set by the app
+    while True:
+        with idle_limit_lock:
+            if idle_limit is not None:
+                break
+        logging.info("Waiting for idle limit to be set by the app...")
+        time.sleep(1)
+    
+    logging.info(f"Monitoring started with initial idle limit: {idle_limit} seconds")
+
     while True:
         idle_time = get_idle_duration()
-        if idle_time >= idle_limit:
+
+        # Access idle_limit in a thread-safe way
+        with idle_limit_lock:
+            current_limit = idle_limit
+
+        if current_limit is not None and idle_time >= current_limit:
             logging.info("Idle time limit exceeded. Shutting down...")
             os.system("shutdown /s /t 0")  # Immediate shutdown command
             break
@@ -48,7 +66,9 @@ def set_idle_limit():
     global idle_limit
     data = request.json
     if 'limit' in data:
-        idle_limit = data['limit']
+        with idle_limit_lock:
+            idle_limit = data['limit']
+        logging.info(f"Idle limit updated to {idle_limit} seconds")
         return jsonify({"status": "Idle limit updated", "new_limit": idle_limit})
     return jsonify({"status": "Failed", "message": "Invalid data"}), 400
 
@@ -57,13 +77,6 @@ def shutdown():
     """Manually trigger system shutdown."""
     os.system("shutdown /s /t 0")
     return jsonify({"status": "System shutting down..."})
-
-@app.route('/reset_idle_time', methods=['POST'])
-def reset_idle_time():
-    """Resets the idle time on server side."""
-    global idle_start_time
-    idle_start_time = time.time()  # Reset the idle start to the current time
-    return jsonify({"status": "Idle time reset"})
 
 if __name__ == '__main__':
     # Start inactivity monitor in a separate thread
