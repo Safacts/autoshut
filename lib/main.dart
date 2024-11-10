@@ -272,31 +272,37 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false, // Disable back button
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('AutoShut Inactivity Monitor'),
-          automaticallyImplyLeading: false, // Remove back button in AppBar
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: _authenticateAndOpenSettings,
-            ),
-          ],
+@override
+Widget build(BuildContext context) {
+  return WillPopScope(
+    onWillPop: () async => false, // Disable back button
+    child: Scaffold(
+      appBar: AppBar(
+        title: const Text('AutoShut Inactivity Monitor'),
+        automaticallyImplyLeading: false, // Remove back button in AppBar
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: _authenticateAndOpenSettings,
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background.png'), // Path to your background image
+            fit: BoxFit.cover,
+          ),
         ),
-        body: Stack(
-          children: [
+        child: Stack(
+          children: [ 
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     "Idle time: $_idleTime seconds",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   const SizedBox(height: 20),
                   AnimatedGradientText(
@@ -310,8 +316,10 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildCountdownOverlay() {
     int remainingTime = _idleLimit - _idleTime;
